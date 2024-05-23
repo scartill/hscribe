@@ -1,7 +1,6 @@
 import os
 import traceback
 
-import boto3
 from telegram import Bot
 
 import utils as u
@@ -14,19 +13,15 @@ bot = Bot(token)
 
 
 def try_process_update(params):
-    print('PARAMS', params)
     try:
         message = params['message']
-        text = message['text']
-        chat_id = message['chat']['id']
-        from_user = message['from']
-        from_id = str(from_user['id'])
-    
+        print('MESSAGE', message)
+
     except Exception as exc:
         raise UserWarning(f'Not enough parameters in the update ({exc})')
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     try:
         method, params = u.request_params(event)
         passed_token = params.get('token')
@@ -45,4 +40,5 @@ def handler(event, context):
     except Exception:
         traceback.print_exc()
         print('OFFENDING EVENT', event)
-        return True
+    finally:
+        return u.response()

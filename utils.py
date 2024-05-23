@@ -3,6 +3,29 @@ import json
 import boto3
 
 
+def response(data_or_error=None, rc=200):
+    if rc != 200:
+        payload = {
+            'IsSuccessful': False,
+            'Error': data_or_error
+        }
+    else:
+        payload = {'IsSuccessful': True}
+
+        if data_or_error:
+            payload.update(data_or_error)
+
+    return {
+        'statusCode': rc,
+        'headers': {
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,PATCH,DELETE'
+        },
+        'body': json.dumps(payload)
+    }
+
+
 def get_sm_secret(name):
     client = boto3.client('secretsmanager')
     get_secret_value_response = client.get_secret_value(
@@ -13,7 +36,7 @@ def get_sm_secret(name):
 
 def request_params(event):
     params = dict()
-    method = event['httpMethod']
+    method = event['requestContext']['http']['method']
 
     pathParams = event.get('pathParameters')
     if pathParams:
