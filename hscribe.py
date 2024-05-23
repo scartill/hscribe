@@ -62,7 +62,7 @@ def transcribe_and_translate(filename):
     response = translate.translate_text(
         Text=transcript,
         SourceLanguageCode='he-IL',
-        TargetLanguageCode='en-US'
+        TargetLanguageCode='ru-RU'
     )
 
     return response['TranslatedText']

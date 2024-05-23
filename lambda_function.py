@@ -20,17 +20,17 @@ async def fetch_audio_file(file_id):
     return array
 
 
-def try_process_update(params):
+async def try_process_update(params):
     try:
         message = params['message']
         print('MESSAGE', message)
         chat_id = message['chat']['id']
 
         if audio := message.get('audio'):
-            array = asyncio.run(fetch_audio_file(audio['file_id']))
+            array = await fetch_audio_file(audio['file_id'])
             translation = hscribe.process_blob(array)
             print('TRANSLATION', translation)
-            asyncio.run(bot.send_message(chat_id=chat_id, text=translation))
+            await bot.send_message(chat_id=chat_id, text=translation)
 
         else:
             print('No audio file found')
@@ -51,7 +51,14 @@ def lambda_handler(event, context):
             raise UserWarning('Access denied: invalid token')
 
         if method == 'POST':
-            try_process_update(params)
+            try:
+                if loop := asyncio.get_event_loop():
+                    if loop.is_closed():
+                        asyncio.set_event_loop(asyncio.new_event_loop())
+            except RuntimeError:
+                print('Starting the first asyncio loop')
+
+            asyncio.run(try_process_update(params))
             return
 
         raise UserWarning(f'Unknown call with {method}')
