@@ -12,7 +12,8 @@ BUCKET_NAME = 'public.resnick'
 
 def transcribe_and_translate(filename):
     transcribe = boto3.client('transcribe')
-    job_name = f'{filename.split('\\')[-1]}-{random.randint(0, 1000)}'
+    job_name = f'job-{random.randint(0, 1000)}'
+    output_key = f'hscribe/{filename}.json'
 
     transcribe.start_transcription_job(
         TranscriptionJobName=job_name,
@@ -21,7 +22,8 @@ def transcribe_and_translate(filename):
         Media={
             'MediaFileUri': f's3://{BUCKET_NAME}/{filename}'
         },
-        OutputBucketName=BUCKET_NAME
+        OutputBucketName=BUCKET_NAME,
+        OutputKey=output_key
     )
 
     lg.info(f'Started transcription job for {filename}')
@@ -66,10 +68,10 @@ def transcribe_and_translate(filename):
     return response['TranslatedText']
 
 
-def process_stream(stream):
+def process_blob(array):
     s3 = boto3.client('s3')
-    filename = f'stream_{random.randint(0, 1000)}.mp3'
-    s3.upload_fileobj(stream, BUCKET_NAME, filename)
+    filename = f'hscribe/stream_{random.randint(0, 1000)}.mp3'
+    s3.put_object(Bucket=BUCKET_NAME, Key=filename, Body=array)
     lg.info(f'Uploaded stream to S3 bucket {BUCKET_NAME}')
     translation = transcribe_and_translate(filename)
     return translation
@@ -77,13 +79,14 @@ def process_stream(stream):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('filename', help='File to transcribe,')
+    parser.add_argument('filename', help='File to transcribe.')
     args = parser.parse_args()
-
+    filebase = args.filename.split('\\')[-1]
+    s3_key = f'hscribe/{filebase}'
     s3 = boto3.client('s3')
-    s3.upload_file(args.filename, BUCKET_NAME, args.filename)
+    s3.upload_file(args.filename, BUCKET_NAME, s3_key)
     lg.info(f'Uploaded {args.filename} to S3 bucket {BUCKET_NAME}')
-    translation = transcribe_and_translate(args.filename)
+    translation = transcribe_and_translate(s3_key)
     lg.info('Printing translation')
     print(translation)
 
